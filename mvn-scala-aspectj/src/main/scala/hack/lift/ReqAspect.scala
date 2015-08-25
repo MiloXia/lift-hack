@@ -1,17 +1,24 @@
 package hack.lift
 
-import org.aspectj.lang.JoinPoint
-import org.aspectj.lang.annotation.{Before, Pointcut, Aspect}
+import org.aspectj.lang.{ProceedingJoinPoint, JoinPoint}
+import org.aspectj.lang.annotation.{Around, Before, Pointcut, Aspect}
+
+import net.liftweb.http.provider.{HTTPResponse, HTTPRequest}
 
 @Aspect
 class ReqAspect {
-  @Pointcut("execution(* service(..)) && this(net.liftweb.http.provider.HTTPProvider)")
-  def creatReqPointcut() = {}
+  @Pointcut("execution(* service(..)) && this(net.liftweb.http.provider.HTTPProvider) && args(req, resp, f)")
+  def serviceP(req: HTTPRequest, resp: HTTPResponse, f: => Unit) = {}
 
-  @Before("creatReqPointcut()")
-  def before(jp: JoinPoint) {
-    val s = String.format("ENTER %s.%s%s", jp.getSignature.getDeclaringType.getName, jp.getSignature.getName, jp.getArgs.toList.mkString("(", ", ", ")"))
+  @Around("serviceP(req, resp, f)")
+  def arroundService(jp: JoinPoint, pjp: ProceedingJoinPoint, req: HTTPRequest, resp: HTTPResponse, f: => Unit) = {
+    val s = String.format("-----ENTER %s.%s%s", jp.getSignature.getDeclaringType.getName, jp.getSignature.getName, jp.getArgs.toList.mkString("(", ", ", ")"))
     println(s)
-    println("fuck lift")
+    println(req.url)
+    val startTime = System.nanoTime()
+    val ret = pjp.proceed()
+    val endTime = System.nanoTime()
+    println("fuck lift" + " took " + (endTime-startTime))
+    ret
   }
 }
